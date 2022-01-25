@@ -1,7 +1,6 @@
 from json import JSONDecodeError
-
+from concurrent.futures import ThreadPoolExecutor
 import requests
-import threading
 import time
 from collections import deque
 import logging
@@ -11,21 +10,20 @@ logging.basicConfig(level=logging.INFO,
                     format='[%(asctime)s] %(name)s - %(levelname)s - %(message)s')
 LOG = logging.getLogger(__name__)
 
-
 BOT_API_KEY = '5178892115:AAGVaTYLhslBQW29FL5CfZ_Kyf9wIxOF0FU'
-CHANNEL_ID = '-1001569990778' #put any group or channel id
+CHANNEL_ID = ''  # put any group or chat id
 
 liquidity_pool_id = '0xd92e743a7deb73e620f1c75c2eff7ee395f36486'
 dex_screener_base_url = 'https://io8.dexscreener.io/u/trading-history/recent/ethereum/'
 dbank_api_url = 'https://openapi.debank.com/v1/user/total_balance?id='
 etherscan_api_url = 'https://api.etherscan.io/api'
 contract_address = '0xc7260d904989febb1a2d12e46dd6679adb99a6f7'
-etherscan_api_key = 'XN5ZN7M7Q4QFQ553XG7FGM9DJ5SPZ2FJQT' #etherscan api key https://etherscan.io/apis
+etherscan_api_key = 'XN5ZN7M7Q4QFQ553XG7FGM9DJ5SPZ2FJQT'  # put the etherscan api key https://etherscan.io/apis
 covalent_base_api = 'https://api.covalenthq.com/v1/1'
 covalent_transactions_api = f'{covalent_base_api}/transaction_v2/'
 covalent_holders_api = f'{covalent_base_api}/tokens/0xc7260D904989fEbB1a2d12e46dd6679aDB99A6F7/token_holders/'
 covalent_locked_holder_addr = '0xe2fe530c047f2d85298b07d9333c05737f1435fb'
-covalent_api_key = 'ckey_86c5aebd8b36441c8b7514dbe54' #put your owm api key https://www.covalenthq.com
+covalent_api_key = 'ckey_86c5aebd8b36441c8b7514dbe54'  # put the covalent API key https://www.covalenthq.com
 null_address = '0x0000000000000000000000000000000000000000'
 treasury_wallet_address = '0x9e2f500a31f5b6ec0bdfc87957587307d247a595'
 dbank_token_search_url = 'https://openapi.debank.com/v1/user/token_search?chain_id=eth&id=' \
@@ -86,7 +84,7 @@ def get_tokens(txn_hash):
     """
     Retrieve burn tokens using the transaction hash from Covalent api
     """
-    time.sleep(25)
+    time.sleep(30)
     url = covalent_transactions_api + txn_hash + '/'
     response = requests.get(url + '?key=' + covalent_api_key)
     data = response.json()
@@ -150,8 +148,10 @@ def get_header(trade_amount):
         return 'EXPO BUY \n🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀\n🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢'
 
 
-def prepare_message(eth_spent, printable_token_received, printable_burnt_tokens, printable_token_reflected, expo_buy_price,
-                    printable_total_supply, printable_cmc, printable_fdv, printable_total_burnt, printable_total_balance, treasure_change_percent,
+def prepare_message(eth_spent, printable_token_received, printable_burnt_tokens, printable_token_reflected,
+                    expo_buy_price,
+                    printable_total_supply, printable_cmc, printable_fdv, printable_total_burnt,
+                    printable_total_balance, treasure_change_percent,
                     etherscan_link, dexscreener_link):
     message = ''
     message = message + '<b>' + get_header(eth_spent) + '</b>'
@@ -180,13 +180,14 @@ def prepare_message(eth_spent, printable_token_received, printable_burnt_tokens,
         message = message + '\n\n<b>Total burned</b> 🔥:  ' + printable_total_burnt + ' EXPO'
 
     if printable_total_balance != 'UNAVAILABLE':
-        message = message + '\n<b>Treasury</b> 🏦: $ ' + printable_total_balance + '(' + str(round(treasure_change_percent, 2)) + '% EXPO)'
+        message = message + '\n<b>Treasury</b> 🏦: $ ' + printable_total_balance + '(' + str(
+            round(treasure_change_percent, 2)) + '% EXPO)'
 
     message = message + '\n<a href="' + etherscan_link + '">TXN</a> | <a href="' + dexscreener_link + '">CHART</a>'
     return message
 
 
-def thread_func(trade):
+def calculate_transaction_data(trade):
     global treasure_change_percent
     eth_spent = trade['amount1']
     print(eth_spent)
@@ -268,14 +269,11 @@ def thread_func(trade):
         etherscan_link = 'https://etherscan.io/tx/' + trade['txnHash']
         dexscreener_link = 'https://dexscreener.com/ethereum/' + liquidity_pool_id
 
-        message = f"""{prepare_message(eth_spent,printable_token_received, printable_burnt_tokens, printable_token_reflected,
+        message = f"""{prepare_message(eth_spent, printable_token_received, printable_burnt_tokens, printable_token_reflected,
                                        expo_buy_price, printable_total_supply, printable_cmc, printable_fdv, printable_total_burnt,
                                        printable_total_balance, treasure_change_percent, etherscan_link, dexscreener_link)}"""
         send_message(message)
-        # Update timestamp and logIndex queue only when a transaction has been successfully processed
-        if trade['blockTimestamp'] > state['lastTimestamp']:
-            state['lastTimestamp'] = trade['blockTimestamp']
-        queue.append(trade['logIndex'])
+
     except NameError as error:
         logging.error("Could not process some data", error)
 
@@ -289,10 +287,14 @@ def track_transaction():
     for trade in list(reversed(trades)):
         LOG.info("Transaction hash of trade %s", trade['txnHash'])
         unique_log_index = trade['logIndex']
-
+        executor = ThreadPoolExecutor(max_workers=10)
         if unique_log_index not in queue:
-            t = threading.Thread(target=thread_func(trade))
-            t.start()
+            executor.submit(calculate_transaction_data, trade)
+            executor.shutdown(wait=False)
+            # Update timestamp and logIndex queue only when a transaction has been successfully processed
+            if trade['blockTimestamp'] > state['lastTimestamp']:
+                state['lastTimestamp'] = trade['blockTimestamp']
+            queue.append(trade['logIndex'])
 
 
 if __name__ == '__main__':
