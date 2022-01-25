@@ -12,19 +12,19 @@ LOG = logging.getLogger(__name__)
 
 
 BOT_API_KEY = '5178892115:AAGVaTYLhslBQW29FL5CfZ_Kyf9wIxOF0FU'
-CHANNEL_ID = ''  # put the group or channel id
+CHANNEL_ID = ''
 
 liquidity_pool_id = '0xd92e743a7deb73e620f1c75c2eff7ee395f36486'
 dex_screener_base_url = 'https://io8.dexscreener.io/u/trading-history/recent/ethereum/'
 dbank_api_url = 'https://openapi.debank.com/v1/user/total_balance?id='
 etherscan_api_url = 'https://api.etherscan.io/api'
 contract_address = '0xc7260d904989febb1a2d12e46dd6679adb99a6f7'
-etherscan_api_key = 'XN5ZN7M7Q4QFQ553XG7FGM9DJ5SPZ2FJQT'  # put the etherscan api key
+etherscan_api_key = 'XN5ZN7M7Q4QFQ553XG7FGM9DJ5SPZ2FJQT'
 covalent_base_api = 'https://api.covalenthq.com/v1/1'
 covalent_transactions_api = f'{covalent_base_api}/transaction_v2/'
 covalent_holders_api = f'{covalent_base_api}/tokens/0xc7260D904989fEbB1a2d12e46dd6679aDB99A6F7/token_holders/'
 covalent_locked_holder_addr = '0xe2fe530c047f2d85298b07d9333c05737f1435fb'
-covalent_api_key = 'ckey_86c5aebd8b36441c8b7514dbe54'  # put the covalent api key
+covalent_api_key = 'ckey_86c5aebd8b36441c8b7514dbe54'
 null_address = '0x0000000000000000000000000000000000000000'
 treasury_wallet_address = '0x9e2f500a31f5b6ec0bdfc87957587307d247a595'
 dbank_token_search_url = 'https://openapi.debank.com/v1/user/token_search?chain_id=eth&id=' \
@@ -261,6 +261,11 @@ def calculate_transaction_data(trade):
         printable_token_received = 'UNAVAILABLE'
         printable_token_reflected = 'UNAVAILABLE'
     except JSONDecodeError as error:
+        logging.error("Unable to parse json", error)
+        printable_burnt_tokens = 'UNAVAILABLE'
+        printable_token_received = 'UNAVAILABLE'
+        printable_token_reflected = 'UNAVAILABLE'
+    except IndexError as error:
         logging.error("Unable to parse json", error)
         printable_burnt_tokens = 'UNAVAILABLE'
         printable_token_received = 'UNAVAILABLE'
