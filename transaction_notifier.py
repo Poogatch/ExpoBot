@@ -12,7 +12,7 @@ LOG = logging.getLogger(__name__)
 
 
 BOT_API_KEY = '5178892115:AAGVaTYLhslBQW29FL5CfZ_Kyf9wIxOF0FU'
-CHANNEL_ID = ''
+CHANNEL_ID = '-1001620608960'
 
 liquidity_pool_id = '0xd92e743a7deb73e620f1c75c2eff7ee395f36486'
 dex_screener_base_url = 'https://io8.dexscreener.io/u/trading-history/recent/ethereum/'
@@ -46,7 +46,8 @@ def send_message(text):
     LOG.info(f'Sending message: {text}')
     url = "https://api.telegram.org/bot" + BOT_API_KEY
     params = {'chat_id': CHANNEL_ID, 'text': text, "parse_mode": "html", 'disable_web_page_preview': 'True'}
-    requests.post(url + '/sendMessage', data=params)
+    response = requests.post(url + '/sendMessage', data=params)
+    print(response.text)
 
 
 def get_transaction_history():
@@ -141,14 +142,15 @@ def get_locked_supply():
 
 
 def get_header(trade_amount):
-    if float(trade_amount) < 1:
-        return 'EXPO BUY \n🚀🚀🚀🚀🚀🚀\n🟢🟢🟢🟢🟢🟢'
-    elif 1 <= float(trade_amount) < 5:
-        return 'EXPO BUY \n🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀\n🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢'
-    elif float(trade_amount) >= 5:
-        return 'EXPO BUY \n🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀\n🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢'
-    else:
-        return 'EXPO BUY \n🚀🚀🚀🚀🚀🚀\n🟢🟢🟢🟢🟢🟢'
+    header = 'EXPO BUY \n🚀🚀🚀🚀🚀🚀\n🟢🟢🟢🟢🟢🟢'
+    if float(trade_amount) < 1.00:
+        return header
+    elif 1.00 <= float(trade_amount) < 5.00:
+        header = 'EXPO BUY \n🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀\n🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢'
+    elif float(trade_amount) >= 5.00:
+        header = 'EXPO BUY \n🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀\n🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢'
+
+    return header
 
 
 
