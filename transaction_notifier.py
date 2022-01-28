@@ -19,12 +19,12 @@ dex_screener_base_url = 'https://io8.dexscreener.io/u/trading-history/recent/eth
 dbank_api_url = 'https://openapi.debank.com/v1/user/total_balance?id='
 etherscan_api_url = 'https://api.etherscan.io/api'
 contract_address = '0xc7260d904989febb1a2d12e46dd6679adb99a6f7'
-etherscan_api_key = 'XN5ZN7M7Q4QFQ553XG7FGM9DJ5SPZ2FJQT'
+etherscan_api_key = ''
 covalent_base_api = 'https://api.covalenthq.com/v1/1'
 covalent_transactions_api = f'{covalent_base_api}/transaction_v2/'
 covalent_holders_api = f'{covalent_base_api}/tokens/0xc7260D904989fEbB1a2d12e46dd6679aDB99A6F7/token_holders/'
 covalent_locked_holder_addr = '0xe2fe530c047f2d85298b07d9333c05737f1435fb'
-covalent_api_key = 'ckey_86c5aebd8b36441c8b7514dbe54'
+covalent_api_key = ''
 null_address = '0x0000000000000000000000000000000000000000'
 treasury_wallet_address = '0x9e2f500a31f5b6ec0bdfc87957587307d247a595'
 dbank_token_search_url = 'https://openapi.debank.com/v1/user/token_search?chain_id=eth&id=' \
@@ -47,7 +47,7 @@ def send_message(text):
     url = "https://api.telegram.org/bot" + BOT_API_KEY
     params = {'chat_id': CHANNEL_ID, 'text': text, "parse_mode": "html", 'disable_web_page_preview': 'True'}
     response = requests.post(url + '/sendMessage', data=params)
-    print(response.text)
+    LOG.info(f'Bot message response: {response.text}')
 
 
 def get_transaction_history():
@@ -122,12 +122,14 @@ def get_locked_supply():
     # if available in the state, return immediately
     locked_supply, validity = state.get(
         'lockedSupply'), state.get('lockedSupplyValidity')
+    LOG.debug('Locked supply: ' + str(locked_supply))
     if locked_supply and validity and time.time() < int(validity):
         return locked_supply
 
     # fetch locked supply value otherwise and save it in the state
     url = covalent_holders_api
     response = requests.get(url + '?key=' + covalent_api_key)
+    LOG.info(f'Response for locked supply: {response.text}')
     data = response.json()
 
     if 'data' not in data:
@@ -149,7 +151,7 @@ def get_header(trade_amount):
         header = 'EXPO BUY \n🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀\n🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢'
     elif float(trade_amount) >= 5.00:
         header = 'EXPO BUY \n🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀\n🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢'
-
+    LOG.info(f'Header: {header}')
     return header
 
 
@@ -184,7 +186,7 @@ def prepare_message(eth_spent, printable_token_received, printable_burnt_tokens,
         message = message + '\n\n<b>Total burned</b> 🔥:  ' + printable_total_burnt + ' EXPO'
 
     if printable_total_balance != 'UNAVAILABLE':
-        message = message + '\n<b>Treasury</b> 🏦: $ ' + printable_total_balance + '(' + str(round(treasure_change_percent, 2)) + '% EXPO)'
+        message = message + '\n<b>Treasury</b> 🏦: $' + printable_total_balance + ' (' + str(round(treasure_change_percent, 2)) + '% EXPO)'
 
     message = message + '\n<a href="' + etherscan_link + '">TXN</a> | <a href="' + dexscreener_link + '">CHART</a>'
     return message
@@ -193,18 +195,18 @@ def prepare_message(eth_spent, printable_token_received, printable_burnt_tokens,
 def calculate_transaction_data(trade):
     global treasure_change_percent
     eth_spent = trade['amount1']
-    print(eth_spent)
+    LOG.info("Eth spent: " + str(eth_spent))
     expo_buy_price = trade['priceUsd']
     try:
         total_supply = get_total_supply()
         printable_total_supply = "{:,.0f}".format(
             float(total_supply) / (10 ** 18)) if total_supply else 'UNAVAILABLE'
     except TypeError as error:
-        logging.error("Service unavailable", error)
+        LOG.error("Service unavailable for total supply")
         total_supply = 'UNAVAILABLE'
         printable_total_supply = 'UNAVAILABLE'
     except Exception as exception:
-        logging.error(
+        LOG.error(
             "Exception occurred while retrieving total supply", exception)
         total_supply = 'UNAVAILABLE'
         printable_total_supply = 'UNAVAILABLE'
@@ -217,11 +219,11 @@ def calculate_transaction_data(trade):
         printable_total_balance = "{:,.0f}".format(
             treasury_balance) if treasury_balance else 'UNAVAILABLE'
     except Exception as exception:
-        logging.error(
+        LOG.error(
             "Exception occurred wile retrieving total balance from dbank", exception)
         printable_total_balance = 'UNAVAILABLE'
     except JSONDecodeError as error:
-        logging.error("Unable to parse json", error)
+        LOG.error("Unable to parse json")
         printable_total_balance = 'UNAVAILABLE'
 
     if total_supply != 'UNAVAILABLE':
@@ -229,8 +231,11 @@ def calculate_transaction_data(trade):
             locked_supply = get_locked_supply()
             _cmc = (float(total_supply) - float(locked_supply)) * float(expo_buy_price)
             printable_cmc = str(round(float(_cmc) / ((10 ** 18) * (10 ** 6)), 2)) if _cmc else 'UNAVAILABLE'
+        except TypeError as error:
+            LOG.error("Covalent api service unavailable")
+            printable_cmc = 'UNAVAILABLE'
         except Exception as exception:
-            logging.error(
+            LOG.error(
                 "Exception occurred while retrieving locked supply", exception)
             printable_cmc = 'UNAVAILABLE'
         try:
@@ -238,7 +243,7 @@ def calculate_transaction_data(trade):
             printable_total_burnt = "{:,.0f}".format(
                 float(total_burned)) if total_burned else 'UNAVAILABLE'
         except Exception as exception:
-            logging.error(
+            LOG.error(
                 "Exception occurred while retrieving locked supply", exception)
             printable_total_burnt = 'UNAVAILABLE'
 
@@ -258,17 +263,17 @@ def calculate_transaction_data(trade):
         printable_token_reflected = "{:,.0f}".format(
             (float(reflected_tokens) / (10 ** 18)) * float(expo_buy_price)) if reflected_tokens else 'UNAVAILABLE'
     except TypeError as error:
-        logging.error("Unable to find transaction data", error)
+        LOG.error("Unable to find transaction data")
         printable_burnt_tokens = 'UNAVAILABLE'
         printable_token_received = 'UNAVAILABLE'
         printable_token_reflected = 'UNAVAILABLE'
     except JSONDecodeError as error:
-        logging.error("Unable to parse json", error)
+        LOG.error("Unable to parse json")
         printable_burnt_tokens = 'UNAVAILABLE'
         printable_token_received = 'UNAVAILABLE'
         printable_token_reflected = 'UNAVAILABLE'
     except IndexError as error:
-        logging.error("Unable to parse json", error)
+        LOG.error("Unable to parse json due to indexing issue")
         printable_burnt_tokens = 'UNAVAILABLE'
         printable_token_received = 'UNAVAILABLE'
         printable_token_reflected = 'UNAVAILABLE'
@@ -283,14 +288,14 @@ def calculate_transaction_data(trade):
         send_message(message)
 
     except NameError as error:
-        logging.error("Could not process some data", error)
+        LOG.error("Could not process some data", error)
 
 
 def track_transaction():
     LOG.info('Fetching transaction history')
     trades = get_transaction_history()
     if not trades:
-        LOG.warning('No new transaction found')
+        LOG.debug('No new transaction found')
 
     executor = ThreadPoolExecutor(max_workers=10)
     for trade in list(reversed(trades)):
