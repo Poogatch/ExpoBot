@@ -12,7 +12,7 @@ LOG = logging.getLogger(__name__)
 
 
 BOT_API_KEY = '5178892115:AAGVaTYLhslBQW29FL5CfZ_Kyf9wIxOF0FU'
-CHANNEL_ID = ''
+CHANNEL_ID = '-1001620608960'
 
 liquidity_pool_id = '0xd92e743a7deb73e620f1c75c2eff7ee395f36486'
 dex_screener_base_url = 'https://io8.dexscreener.io/u/trading-history/recent/ethereum/'
