@@ -298,10 +298,10 @@ def calculate_transaction_data(trade):
 
 
 def track_transaction():
-    LOG.info('Fetching transaction history')
+    LOG.info('Fetching transaction history V7')
     trades = get_transaction_history()
     if not trades:
-        LOG.debug('No new transaction found')
+        LOG.debug('No new transaction found V7')
 
     executor = ThreadPoolExecutor(max_workers=10)
     for trade in list(reversed(trades)):
