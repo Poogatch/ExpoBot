@@ -12,7 +12,7 @@ LOG = logging.getLogger(__name__)
 
 
 BOT_API_KEY = '5178892115:AAGVaTYLhslBQW29FL5CfZ_Kyf9wIxOF0FU'
-CHANNEL_ID = '-1001569990778'
+CHANNEL_ID = ''
 
 liquidity_pool_id = '0xd92e743a7deb73e620f1c75c2eff7ee395f36486'
 dex_screener_base_url = 'https://io8.dexscreener.io/u/trading-history/recent/ethereum/'
@@ -216,6 +216,7 @@ def calculate_transaction_data(trade):
     try:
         total_balance = requests.get(dbank_api_url + treasury_wallet_address)
         treasury_balance = total_balance.json()['total_usd_value']
+        ##########
         treasure_change = (float(get_treasury_amount()) * float(expo_buy_price)) / float(treasury_balance)
         treasure_change_percent = treasure_change * 100
         printable_total_balance = "{:,.0f}".format(
@@ -257,13 +258,16 @@ def calculate_transaction_data(trade):
         printable_total_burnt = 'UNAVAILABLE'
 
     try:
-        burned_tokens, received_tokens, reflected_tokens = get_tokens(trade['txnHash'])
+        # burned_tokens, received_tokens, reflected_tokens = get_tokens(trade['txnHash'])
+        received_tokens = float(str(trade['amount0']).replace(',', ''))
+        reflected_tokens = 0.1 * received_tokens
+        burned_tokens = 0.02 * reflected_tokens
         printable_burnt_tokens = "{:,.0f}".format(
-            float(burned_tokens) / (10 ** 18)) if burned_tokens else 'UNAVAILABLE'
+            float(burned_tokens)) if burned_tokens else 'UNAVAILABLE'
         printable_token_received = "{:,.0f}".format(
-            float(received_tokens) / (10 ** 18)) if received_tokens else 'UNAVAILABLE'
+            float(received_tokens)) if received_tokens else 'UNAVAILABLE'
         printable_token_reflected = "{:,.0f}".format(
-            (float(reflected_tokens) / (10 ** 18)) * float(expo_buy_price)) if reflected_tokens else 'UNAVAILABLE'
+            (float(reflected_tokens)) * float(expo_buy_price)) if reflected_tokens else 'UNAVAILABLE'
     except TypeError as error:
         LOG.error("Unable to find transaction data")
         printable_burnt_tokens = 'UNAVAILABLE'
@@ -307,6 +311,8 @@ def track_transaction():
             executor.submit(calculate_transaction_data, trade)
             executor.shutdown(wait=False)
             # Update timestamp and logIndex queue only when a transaction has been successfully processed
+            LOG.info('Trade block timestamp: ' + str(trade['blockTimestamp']))
+            LOG.info('State last timestamp: ' + str(state['lastTimestamp']))
             if trade['blockTimestamp'] > state['lastTimestamp']:
                 state['lastTimestamp'] = trade['blockTimestamp']
             queue.append(trade['logIndex'])
