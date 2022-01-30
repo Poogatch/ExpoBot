@@ -144,13 +144,15 @@ def get_locked_supply():
 
 
 def get_header(trade_amount):
-    header = 'EXPO BUY \n🚀🚀🚀🚀🚀🚀\n🟢🟢🟢🟢🟢🟢'
+    header = 'EXPO BUY \n🟢🚀🟢🚀🟢🚀🟢\n🟢🟢🟢🟢🟢🟢🟢'
     if float(trade_amount) < 1.00:
         return header
-    elif 1.00 <= float(trade_amount) < 5.00:
-        header = 'EXPO BUY \n🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀\n🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢'
+    elif 1.00 <= float(trade_amount) < 2.00:
+        header = 'EXPO BUY \n🟢🚀🟢🚀🟢🚀🟢🚀🟢🚀🟢\n🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢'
+    elif 2.00 <= float(trade_amount) < 5.00:
+        header = 'EXPO BUY \n🟢🚀🟢🚀🟢🚀🟢🚀🟢🚀🟢🚀🟢🚀🟢🚀🟢🚀🟢\n🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢'
     elif float(trade_amount) >= 5.00:
-        header = 'EXPO BUY \n🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀\n🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢'
+        header = 'EXPO BUY \n🟢🚀🟢🚀🟢🚀🟢🚀🟢🚀🟢🚀🟢🚀🟢🚀🟢🚀🟢\n🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢'
     LOG.info(f'Header: {header}')
     return header
 
@@ -205,10 +207,6 @@ def calculate_transaction_data(trade):
         LOG.error("Service unavailable for total supply")
         total_supply = 'UNAVAILABLE'
         printable_total_supply = 'UNAVAILABLE'
-    except JSONDecodeError as error:
-        LOG.error("Service unavailable for total supply")
-        total_supply = 'UNAVAILABLE'
-        printable_total_supply = 'UNAVAILABLE'
     except Exception as exception:
         LOG.error(
             "Exception occurred while retrieving total supply", exception)
@@ -219,15 +217,10 @@ def calculate_transaction_data(trade):
         total_balance = requests.get(dbank_api_url + treasury_wallet_address)
         treasury_balance = total_balance.json()['total_usd_value']
         ##########
-        expo_amount = float(get_treasury_amount()) * float(expo_buy_price)
-        treasury_balance = float(treasury_balance) + float(expo_amount)
-        treasure_change = float(expo_amount) / float(treasury_balance)
+        treasure_change = (float(get_treasury_amount()) * float(expo_buy_price)) / float(treasury_balance)
         treasure_change_percent = treasure_change * 100
         printable_total_balance = "{:,.0f}".format(
             treasury_balance) if treasury_balance else 'UNAVAILABLE'
-    except TypeError as error:
-        LOG.error("Data unavailable form API")
-        printable_total_balance = 'UNAVAILABLE'
     except Exception as exception:
         LOG.error(
             "Exception occurred wile retrieving total balance from dbank", exception)
@@ -244,14 +237,10 @@ def calculate_transaction_data(trade):
         except TypeError as error:
             LOG.error("Covalent api service unavailable")
             printable_cmc = 'UNAVAILABLE'
-        except JSONDecodeError as error:
-            LOG.error("Unable to parse json")
-            printable_cmc = 'UNAVAILABLE'
         except Exception as exception:
             LOG.error(
                 "Exception occurred while retrieving locked supply", exception)
             printable_cmc = 'UNAVAILABLE'
-
         try:
             total_burned = 1000000000000 - (float(total_supply) / (10 ** 18))
             printable_total_burnt = "{:,.0f}".format(
@@ -309,17 +298,10 @@ def calculate_transaction_data(trade):
 
 
 def track_transaction():
-    global trades
-    LOG.info('Fetching transaction history on v8')
-    try:
-        trades = get_transaction_history()
-    except JSONDecodeError as error:
-        LOG.error("Unable to fetch transaction. Some dexscreener issue.")
-    except TypeError as error:
-        LOG.error("Unable to fetch transaction. Some dexscreener issue.")
-
+    LOG.info('Fetching transaction history V7')
+    trades = get_transaction_history()
     if not trades:
-        LOG.debug('No new transaction found')
+        LOG.debug('No new transaction found V7')
 
     executor = ThreadPoolExecutor(max_workers=10)
     for trade in list(reversed(trades)):
