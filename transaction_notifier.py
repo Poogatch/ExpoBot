@@ -1,9 +1,10 @@
-from json import JSONDecodeError
-from concurrent.futures import ThreadPoolExecutor
-import requests
+import logging
+import threading
 import time
 from collections import deque
-import logging
+from json import JSONDecodeError
+
+import requests
 import schedule
 
 logging.basicConfig(level=logging.INFO,
@@ -144,13 +145,15 @@ def get_locked_supply():
 
 
 def get_header(trade_amount):
-    header = 'EXPO BUY \n🚀🚀🚀🚀🚀🚀\n🟢🟢🟢🟢🟢🟢'
+    header = 'EXPO BUY \n🟢🚀🟢🚀🟢🚀🟢\n🟢🟢🟢🟢🟢🟢🟢'
     if float(trade_amount) < 1.00:
         return header
-    elif 1.00 <= float(trade_amount) < 5.00:
-        header = 'EXPO BUY \n🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀\n🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢'
+    elif 1.00 <= float(trade_amount) < 2.00:
+        header = 'EXPO BUY \n🟢🚀🟢🚀🟢🚀🟢🚀🟢🚀🟢\n🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢'
+    elif 2.00 <= float(trade_amount) < 5.00:
+        header = 'EXPO BUY \n🟢🚀🟢🚀🟢🚀🟢🚀🟢🚀🟢🚀🟢🚀🟢🚀🟢🚀🟢\n🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢'
     elif float(trade_amount) >= 5.00:
-        header = 'EXPO BUY \n🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀\n🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢'
+        header = 'EXPO BUY \n🟢🚀🟢🚀🟢🚀🟢🚀🟢🚀🟢🚀🟢🚀🟢🚀🟢🚀🟢\n🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢'
     LOG.info(f'Header: {header}')
     return header
 
@@ -310,7 +313,7 @@ def calculate_transaction_data(trade):
 
 def track_transaction():
     global trades
-    LOG.info('Fetching transaction history on v8')
+    LOG.info('Fetching transaction history on v9')
     try:
         trades = get_transaction_history()
     except JSONDecodeError as error:
@@ -321,13 +324,15 @@ def track_transaction():
     if not trades:
         LOG.debug('No new transaction found')
 
-    executor = ThreadPoolExecutor(max_workers=10)
+    # executor = ThreadPoolExecutor(max_workers=10)
     for trade in list(reversed(trades)):
         LOG.info("Transaction hash of trade %s", trade['txnHash'])
         unique_log_index = trade['logIndex']
         if unique_log_index not in queue:
-            executor.submit(calculate_transaction_data, trade)
-            executor.shutdown(wait=False)
+            t = threading.Thread(target=calculate_transaction_data, args=(trade,))
+            t.start()
+            # executor.submit(calculate_transaction_data, trade)
+            # executor.shutdown(wait=False)
             # Update timestamp and logIndex queue only when a transaction has been successfully processed
             LOG.info('Trade block timestamp: ' + str(trade['blockTimestamp']))
             LOG.info('State last timestamp: ' + str(state['lastTimestamp']))
