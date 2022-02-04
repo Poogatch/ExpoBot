@@ -15,11 +15,11 @@ LOG = logging.getLogger(__name__)
 BOT_API_KEY = '5178892115:AAGVaTYLhslBQW29FL5CfZ_Kyf9wIxOF0FU'
 CHANNEL_ID = '-1001620608960'
 
-liquidity_pool_id = '0x8e1b5164d4059fdec87ec5d0b9c64e4ff727b1ed'
+liquidity_pool_id = '0xd92e743a7deb73e620f1c75c2eff7ee395f36486'
 dex_screener_base_url = 'https://io8.dexscreener.io/u/trading-history/recent/ethereum/'
 dbank_api_url = 'https://openapi.debank.com/v1/user/total_balance?id='
 etherscan_api_url = 'https://api.etherscan.io/api'
-contract_address = '0xcfaf8edcea94ebaa080dc4983c3f9be5701d6613'
+contract_address = '0xc7260d904989febb1a2d12e46dd6679adb99a6f7'
 etherscan_api_key = 'XN5ZN7M7Q4QFQ553XG7FGM9DJ5SPZ2FJQT'
 covalent_base_api = 'https://api.covalenthq.com/v1/1'
 covalent_transactions_api = f'{covalent_base_api}/transaction_v2/'
@@ -28,11 +28,9 @@ covalent_locked_holder_addr = '0xe2fe530c047f2d85298b07d9333c05737f1435fb'
 covalent_api_key = 'ckey_86c5aebd8b36441c8b7514dbe54'
 null_address = '0x0000000000000000000000000000000000000000'
 treasury_wallet_address = '0x9e2f500a31f5b6ec0bdfc87957587307d247a595'
-treasury_wallet_address_degen = '0x880a3769d82d63ee014195b758854d5750bb30ca'
 dbank_token_search_url = 'https://openapi.debank.com/v1/user/token_search?chain_id=eth&id=' \
                          + treasury_wallet_address + '&q=' + contract_address + '&has_balance'
-dbank_token_search_url_degen = 'https://openapi.debank.com/v1/user/token_search?chain_id=eth&id=' \
-                         + treasury_wallet_address_degen + '&q=' + contract_address + '&has_balance'
+
 queue = deque(maxlen=10)
 
 state = {
@@ -69,7 +67,20 @@ def get_transaction_history():
     return trading_history
 
 
-
+def get_total_supply():
+    """
+    Retrieve total supply of tokens
+    """
+    params = {
+        'module': 'stats',
+        'action': 'tokensupply',
+        'contractaddress': contract_address,
+        'apikey': etherscan_api_key
+    }
+    response = requests.get(etherscan_api_url, data=params)
+    if response.status_code == 200:
+        return response.json()['result']
+    LOG.warning('Total supply not found')
 
 
 def get_tokens(txn_hash):
@@ -104,29 +115,52 @@ def get_treasury_amount():
     data = response.json()
     return data[0]['amount']
 
-def get_treasury_amount_degen():
-    response = requests.get(dbank_token_search_url_degen)
+
+def get_locked_supply():
+    """
+    Retrieve locked supply
+    """
+    # if available in the state, return immediately
+    locked_supply, validity = state.get(
+        'lockedSupply'), state.get('lockedSupplyValidity')
+    LOG.debug('Locked supply: ' + str(locked_supply))
+    if locked_supply and validity and time.time() < int(validity):
+        return locked_supply
+
+    # fetch locked supply value otherwise and save it in the state
+    url = covalent_holders_api
+    response = requests.get(url + '?key=' + covalent_api_key)
+    LOG.info(f'Response for locked supply: {response.text}')
     data = response.json()
-    return data[0]['amount']
 
+    if 'data' not in data:
+        LOG.warning("Locked supply not found")
+        return None
 
+    items = data['data']['items']
+    for item in items:
+        if item['address'] == covalent_locked_holder_addr:
+            state['lockedSupply'] = item['balance']
+            return item['balance']
 
 
 def get_header(trade_amount):
-    header = 'EXPO BUY \n🚀🚀🚀🚀🚀🚀\n🟢🟢🟢🟢🟢🟢'
+    header = 'EXPO BUY \n🟢🚀🟢🚀🟢🚀🟢\n🟢🟢🟢🟢🟢🟢🟢'
     if float(trade_amount) < 1.00:
         return header
-    elif 1.00 <= float(trade_amount) < 5.00:
-        header = 'EXPO BUY \n🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀\n🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢'
+    elif 1.00 <= float(trade_amount) < 2.00:
+        header = 'EXPO BUY \n🟢🚀🟢🚀🟢🚀🟢🚀🟢🚀🟢\n🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢'
+    elif 2.00 <= float(trade_amount) < 5.00:
+        header = 'EXPO BUY \n🟢🚀🟢🚀🟢🚀🟢🚀🟢🚀🟢🚀🟢🚀🟢🚀🟢🚀🟢\n🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢'
     elif float(trade_amount) >= 5.00:
-        header = 'EXPO BUY \n🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀\n🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢'
+        header = 'EXPO BUY \n🟢🚀🟢🚀🟢🚀🟢🚀🟢🚀🟢🚀🟢🚀🟢🚀🟢🚀🟢\n🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢'
     LOG.info(f'Header: {header}')
     return header
 
 
 
-def prepare_message(eth_spent, printable_token_received, printable_treasury_tokens, printable_token_reflected, expo_buy_price,
-                    printable_cmc, printable_total_balance, treasure_change_percent,
+def prepare_message(eth_spent, printable_token_received, printable_burnt_tokens, printable_token_reflected, expo_buy_price,
+                    printable_total_supply, printable_cmc, printable_fdv, printable_total_burnt, printable_total_balance, treasure_change_percent,
                     etherscan_link, dexscreener_link):
     message = ''
     message = message + '<b>' + get_header(eth_spent) + '</b>'
@@ -134,16 +168,25 @@ def prepare_message(eth_spent, printable_token_received, printable_treasury_toke
     if printable_token_received != 'UNAVAILABLE':
         message = message + '\n<b>Received</b> 💰: ' + printable_token_received + ' EXPO'
 
-    if printable_treasury_tokens != 'UNAVAILABLE':
-        message = message + '\n<b>Treasury</b> 🏦: ' + printable_treasury_tokens + ' EXPO'
+    if printable_burnt_tokens != 'UNAVAILABLE':
+        message = message + '\n<b>Burned</b> 🔥: ' + printable_burnt_tokens + ' EXPO'
 
     if printable_token_reflected != 'UNAVAILABLE':
         message = message + '\n<b>Reflected</b> 🔙: $' + printable_token_reflected + ' USD'
 
     message = message + '\n<b>EXPO price</b>: $' + expo_buy_price
 
+    if printable_total_supply != 'UNAVAILABLE':
+        message = message + '\n<b>Total supply</b>: ' + printable_total_supply
+
     if printable_cmc != 'UNAVAILABLE':
-        message = message + '\n<b>Market Cap</b>: $' + printable_cmc + 'M'
+        message = message + '\n<b>Circ. Mcap</b>: $' + printable_cmc + 'M'
+
+    if printable_fdv != 'UNAVAILABLE':
+        message = message + '\n<b>FDV</b>: $' + printable_fdv + 'M'
+
+    if printable_total_burnt != 'UNAVAILABLE':
+        message = message + '\n\n<b>Total burned</b> 🔥:  ' + printable_total_burnt + ' EXPO'
 
     if printable_total_balance != 'UNAVAILABLE':
         message = message + '\n<b>Treasury</b> 🏦: $' + printable_total_balance + ' (' + str(round(treasure_change_percent, 2)) + '% EXPO)'
@@ -157,16 +200,30 @@ def calculate_transaction_data(trade):
     eth_spent = trade['amount1']
     LOG.info("Eth spent: " + str(eth_spent))
     expo_buy_price = trade['priceUsd']
-
+    try:
+        total_supply = get_total_supply()
+        printable_total_supply = "{:,.0f}".format(
+            float(total_supply) / (10 ** 18)) if total_supply else 'UNAVAILABLE'
+    except TypeError as error:
+        LOG.error("Service unavailable for total supply")
+        total_supply = 'UNAVAILABLE'
+        printable_total_supply = 'UNAVAILABLE'
+    except JSONDecodeError as error:
+        LOG.error("Service unavailable for total supply")
+        total_supply = 'UNAVAILABLE'
+        printable_total_supply = 'UNAVAILABLE'
+    except Exception as exception:
+        LOG.error(
+            "Exception occurred while retrieving total supply", exception)
+        total_supply = 'UNAVAILABLE'
+        printable_total_supply = 'UNAVAILABLE'
 
     try:
         total_balance = requests.get(dbank_api_url + treasury_wallet_address)
         treasury_balance = total_balance.json()['total_usd_value']
-        total_balance_degen = requests.get(dbank_api_url + treasury_wallet_address_degen)
-        treasury_balance_degen = total_balance.json()['total usd value']
         ##########
         expo_amount = float(get_treasury_amount()) * float(expo_buy_price)
-        treasury_balance = float(treasury_balance) + float(expo_amount) + float(treasury_balance_degen)
+        treasury_balance = float(treasury_balance) + float(expo_amount)
         treasure_change = float(expo_amount) / float(treasury_balance)
         treasure_change_percent = treasure_change * 100
         printable_total_balance = "{:,.0f}".format(
@@ -182,22 +239,45 @@ def calculate_transaction_data(trade):
         LOG.error("Unable to parse json")
         printable_total_balance = 'UNAVAILABLE'
 
-    try:
-        _cmc = float(total_supply) * float(expo_buy_price)
-        printable_cmc = str(round(float(_cmc) / ((10 ** 18) * (10 ** 6)), 2)) if _cmc else 'UNAVAILABLE'
-    except TypeError as error:
-        LOG.error("Covalent api service unavailable")
+    if total_supply != 'UNAVAILABLE':
+        try:
+            locked_supply = get_locked_supply()
+            _cmc = (float(total_supply) - float(locked_supply)) * float(expo_buy_price)
+            printable_cmc = str(round(float(_cmc) / ((10 ** 18) * (10 ** 6)), 2)) if _cmc else 'UNAVAILABLE'
+        except TypeError as error:
+            LOG.error("Covalent api service unavailable")
+            printable_cmc = 'UNAVAILABLE'
+        except JSONDecodeError as error:
+            LOG.error("Unable to parse json")
+            printable_cmc = 'UNAVAILABLE'
+        except Exception as exception:
+            LOG.error(
+                "Exception occurred while retrieving locked supply", exception)
+            printable_cmc = 'UNAVAILABLE'
+
+        try:
+            total_burned = 1000000000000 - (float(total_supply) / (10 ** 18))
+            printable_total_burnt = "{:,.0f}".format(
+                float(total_burned)) if total_burned else 'UNAVAILABLE'
+        except Exception as exception:
+            LOG.error(
+                "Exception occurred while retrieving locked supply", exception)
+            printable_total_burnt = 'UNAVAILABLE'
+
+        _fdv = float(total_supply) * float(expo_buy_price)
+        printable_fdv = str(round(float(_fdv) / ((10 ** 18) * (10 ** 6)), 2)) if _fdv else 'UNAVAILABLE'
+    else:
         printable_cmc = 'UNAVAILABLE'
-    except JSONDecodeError as error:
-        LOG.error("Unable to parse json")
-        printable_cmc = 'UNAVAILABLE'
+        printable_fdv = 'UNAVAILABLE'
+        printable_total_burnt = 'UNAVAILABLE'
+
     try:
         # burned_tokens, received_tokens, reflected_tokens = get_tokens(trade['txnHash'])
         received_tokens = float(str(trade['amount0']).replace(',', ''))
-        reflected_tokens = 0.05 * received_tokens
-        treasury_tokens = 0.08 * reflected_tokens
-        printable_treasury_tokens = "{:,.0f}".format(
-            float(treasury_tokens)) if treasury_tokens else 'UNAVAILABLE'
+        reflected_tokens = 0.1 * received_tokens
+        burned_tokens = 0.02 * reflected_tokens
+        printable_burnt_tokens = "{:,.0f}".format(
+            float(burned_tokens)) if burned_tokens else 'UNAVAILABLE'
         printable_token_received = "{:,.0f}".format(
             float(received_tokens)) if received_tokens else 'UNAVAILABLE'
         printable_token_reflected = "{:,.0f}".format(
@@ -233,7 +313,7 @@ def calculate_transaction_data(trade):
 
 def track_transaction():
     global trades
-    LOG.info('Fetching transaction history on v10')
+    LOG.info('Fetching transaction history on v9')
     try:
         trades = get_transaction_history()
     except JSONDecodeError as error:
