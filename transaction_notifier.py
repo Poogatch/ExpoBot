@@ -225,7 +225,7 @@ def calculate_transaction_data(trade):
         etherscan_link = 'https://etherscan.io/tx/' + trade['txnHash']
         dexscreener_link = 'https://dexscreener.com/ethereum/' + liquidity_pool_id
 
-        message = f"""{prepare_message(eth_spent,printable_token_received, printable_treasur_tokens, printable_token_reflected,
+        message = f"""{prepare_message(eth_spent,printable_token_received, printable_treasury_tokens, printable_token_reflected,
                                        expo_buy_price, printable_cmc, printable_total_balance, treasure_change_percent, etherscan_link, dexscreener_link)}"""
         send_message(message)
 
