@@ -159,7 +159,7 @@ def prepare_message(eth_spent, printable_token_received, printable_treasury_toke
                     etherscan_link, dexscreener_link):
     message = ''
     message = message + '<b>' + get_header(eth_spent) + '</b>'
-    message = message + '\n<b>Spent</b> 💸: ' + eth_spent + ' ETH ($' + (eth_spent * float(eth_price)) ' USD)'
+    message = message + '\n<b>Spent</b> 💸: ' + eth_spent + ' ETH ($' + (eth_spent * float(eth_price)) + ' USD)'
     if printable_token_received != 'UNAVAILABLE':
         message = message + '\n<b>Received</b> 💰: ' + printable_token_received + ' EXPO'
 
