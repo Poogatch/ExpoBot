@@ -15,12 +15,13 @@ LOG = logging.getLogger(__name__)
 BOT_API_KEY = '5178892115:AAGVaTYLhslBQW29FL5CfZ_Kyf9wIxOF0FU'
 CHANNEL_ID = '-1001620608960'
 
+total_supply = 816722973503
 liquidity_pool_id = '0x8e1b5164d4059fdec87ec5d0b9c64e4ff727b1ed'
 dex_screener_base_url = 'https://io8.dexscreener.io/u/trading-history/recent/ethereum/'
 dbank_api_url = 'https://openapi.debank.com/v1/user/total_balance?id='
 etherscan_api_url = 'https://api.etherscan.io/api'
 contract_address = '0xcfaf8edcea94ebaa080dc4983c3f9be5701d6613'
-etherscan_api_key = 'XN5ZN7M7Q4QFQ553XG7FGM9DJ5SPZ2FJQT'
+etherscan_api_key = '0xc7260d904989febb1a2d12e46dd6679adb99a6f7'
 covalent_base_api = 'https://api.covalenthq.com/v1/1'
 covalent_transactions_api = f'{covalent_base_api}/transaction_v2/'
 covalent_holders_api = f'{covalent_base_api}/tokens/0xc7260D904989fEbB1a2d12e46dd6679aDB99A6F7/token_holders/'
@@ -69,34 +70,7 @@ def get_transaction_history():
     return trading_history
 
 
-def get_total_supply():
-    """
-    Retrieve total supply of tokens
-    """
-    params = {
-        'module': 'stats',
-        'action': 'tokensupply',
-        'contractaddress': contract_address,
-        'apikey': etherscan_api_key
-    }
-    response = requests.get(etherscan_api_url, data=params)
-    if response.status_code == 200:
-        return response.json()['result']
-    LOG.warning('Total supply not found')
 
-def get_eth_price():
-    """
-    Retrieve current ETH price
-    """
-    pramas = {
-        'module': 'stats'
-        'action': 'ethprice'
-        'apikey': etherscan_api_key
-    }
-    response = requests.get(etherscan_api_url, data=params)
-    if respons.status_code ==200:
-        return response.json()['result']
-    LOG.warning('Total supply not found')
 
 
 def get_tokens(txn_hash):
@@ -159,15 +133,15 @@ def prepare_message(eth_spent, printable_token_received, printable_treasury_toke
                     etherscan_link, dexscreener_link):
     message = ''
     message = message + '<b>' + get_header(eth_spent) + '</b>'
-    message = message + '\n<b>Spent</b> 💸: ' + eth_spent + ' ETH ($' + (eth_spent * float(eth_price)) ' USD)
+    message = message + '\n<b>Spent</b> 💸: ' + eth_spent + ' ETH'
     if printable_token_received != 'UNAVAILABLE':
         message = message + '\n<b>Received</b> 💰: ' + printable_token_received + ' EXPO'
 
     if printable_treasury_tokens != 'UNAVAILABLE':
-        message = message + '\n<b>Treasury</b> 🏦: ' + printable_treasury_tokens + ' ETH'
+        message = message + '\n<b>Treasury</b> 🏦: ' + printable_treasury_tokens + ' EXPO'
 
     if printable_token_reflected != 'UNAVAILABLE':
-        message = message + '\n<b>Reflected</b> 🔙: $' + printable_token_reflected + ' ETH'
+        message = message + '\n<b>Reflected</b> 🔙: $' + printable_token_reflected + ' USD'
 
     message = message + '\n<b>EXPO price</b>: $' + expo_buy_price
 
@@ -187,24 +161,7 @@ def calculate_transaction_data(trade):
     LOG.info("Eth spent: " + str(eth_spent))
     expo_buy_price = trade['priceUsd']
 
-    try:
-        total_supply = get_total_supply()
-        printable_total_supply = "{:,.0f}".format(
-            float(total_supply) / (10 ** 18)) if total_supply else 'UNAVAILABLE'
-    except TypeError as error:
-        LOG.error("Service unavailable for total supply")
-        total_supply = 'UNAVAILABLE'
-        printable_total_supply = 'UNAVAILABLE'
-    except JSONDecodeError as error:
-        LOG.error("Service unavailable for total supply")
-        total_supply = 'UNAVAILABLE'
-        printable_total_supply = 'UNAVAILABLE'
-    except Exception as exception:
-        LOG.error(
-            "Exception occurred while retrieving total supply", exception)
-        total_supply = 'UNAVAILABLE'
-        printable_total_supply = 'UNAVAILABLE'
-        
+
     try:
         total_balance = requests.get(dbank_api_url + treasury_wallet_address)
         total_balance_degen = requests.get(dbank_api_url + treasury_wallet_address_degen)
@@ -239,16 +196,15 @@ def calculate_transaction_data(trade):
         printable_cmc = 'UNAVAILABLE'
     try:
         # burned_tokens, received_tokens, reflected_tokens = get_tokens(trade['txnHash'])
-        eth_price = get_eth_price()
         received_tokens = float(str(trade['amount0']).replace(',', ''))
         reflected_tokens = 0.05 * received_tokens
         treasury_tokens = 0.08 * reflected_tokens
         printable_treasury_tokens = "{:,.0f}".format(
-            (float(treasury_tokens))* float(expo_buy_price) / float(eth_price)) if treasury_tokens else 'UNAVAILABLE'
+            float(treasury_tokens)) if treasury_tokens else 'UNAVAILABLE'
         printable_token_received = "{:,.0f}".format(
             float(received_tokens)) if received_tokens else 'UNAVAILABLE'
         printable_token_reflected = "{:,.0f}".format(
-            (float(reflected_tokens)) * float(expo_buy_price) / float(eth_price)) if reflected_tokens else 'UNAVAILABLE'
+            (float(reflected_tokens)) * float(expo_buy_price)) if reflected_tokens else 'UNAVAILABLE'
     except TypeError as error:
         LOG.error("Unable to find transaction data")
         printable_burnt_tokens = 'UNAVAILABLE'
