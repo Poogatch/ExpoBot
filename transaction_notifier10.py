@@ -15,13 +15,12 @@ LOG = logging.getLogger(__name__)
 BOT_API_KEY = '5178892115:AAGVaTYLhslBQW29FL5CfZ_Kyf9wIxOF0FU'
 CHANNEL_ID = '-1001620608960'
 
-total_supply = 816722973503
 liquidity_pool_id = '0x8e1b5164d4059fdec87ec5d0b9c64e4ff727b1ed'
 dex_screener_base_url = 'https://io8.dexscreener.io/u/trading-history/recent/ethereum/'
 dbank_api_url = 'https://openapi.debank.com/v1/user/total_balance?id='
 etherscan_api_url = 'https://api.etherscan.io/api'
 contract_address = '0xcfaf8edcea94ebaa080dc4983c3f9be5701d6613'
-etherscan_api_key = '0xc7260d904989febb1a2d12e46dd6679adb99a6f7'
+etherscan_api_key = 'XN5ZN7M7Q4QFQ553XG7FGM9DJ5SPZ2FJQT'
 covalent_base_api = 'https://api.covalenthq.com/v1/1'
 covalent_transactions_api = f'{covalent_base_api}/transaction_v2/'
 covalent_holders_api = f'{covalent_base_api}/tokens/0xc7260D904989fEbB1a2d12e46dd6679aDB99A6F7/token_holders/'
@@ -114,15 +113,13 @@ def get_treasury_amount_degen():
 
 
 def get_header(trade_amount):
-    header = 'EXPO BUY \n🟢🚀🟢🚀🟢🚀🟢\n🟢🟢🟢🟢🟢🟢🟢'
+    header = 'EXPO BUY \n🚀🚀🚀🚀🚀🚀\n🟢🟢🟢🟢🟢🟢'
     if float(trade_amount) < 1.00:
         return header
-    elif 1.00 <= float(trade_amount) < 2.00:
-        header = 'EXPO BUY \n🟢🚀🟢🚀🟢🚀🟢🚀🟢🚀🟢\n🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢'
-    elif 2.00 <= float(trade_amount) < 5.00:
-        header = 'EXPO BUY \n🟢🚀🟢🚀🟢🚀🟢🚀🟢🚀🟢🚀🟢🚀🟢🚀🟢🚀🟢\n🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢'
+    elif 1.00 <= float(trade_amount) < 5.00:
+        header = 'EXPO BUY \n🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀\n🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢'
     elif float(trade_amount) >= 5.00:
-        header = 'EXPO BUY \n🟢🚀🟢🚀🟢🚀🟢🚀🟢🚀🟢🚀🟢🚀🟢🚀🟢🚀🟢\n🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢'
+        header = 'EXPO BUY \n🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀\n🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢'
     LOG.info(f'Header: {header}')
     return header
 
@@ -164,9 +161,9 @@ def calculate_transaction_data(trade):
 
     try:
         total_balance = requests.get(dbank_api_url + treasury_wallet_address)
-        total_balance_degen = requests.get(dbank_api_url + treasury_wallet_address_degen)
         treasury_balance = total_balance.json()['total_usd_value']
-        treasury_balance_degen = total_balance_degen.json()['total_usd_value']
+        total_balance_degen = requests.get(dbank_api_url + treasury_wallet_address_degen)
+        treasury_balance_degen = total_balance.json()['total usd value']
         ##########
         expo_amount = float(get_treasury_amount()) * float(expo_buy_price)
         treasury_balance = float(treasury_balance) + float(expo_amount) + float(treasury_balance_degen)
@@ -225,8 +222,9 @@ def calculate_transaction_data(trade):
         etherscan_link = 'https://etherscan.io/tx/' + trade['txnHash']
         dexscreener_link = 'https://dexscreener.com/ethereum/' + liquidity_pool_id
 
-        message = f"""{prepare_message(eth_spent,printable_token_received, printable_treasur_tokens, printable_token_reflected,
-                                       expo_buy_price, printable_cmc, printable_total_balance, treasure_change_percent, etherscan_link, dexscreener_link)}"""
+        message = f"""{prepare_message(eth_spent,printable_token_received, printable_burnt_tokens, printable_token_reflected,
+                                       expo_buy_price, printable_total_supply, printable_cmc, printable_fdv, printable_total_burnt,
+                                       printable_total_balance, treasure_change_percent, etherscan_link, dexscreener_link)}"""
         send_message(message)
 
     except NameError as error:
