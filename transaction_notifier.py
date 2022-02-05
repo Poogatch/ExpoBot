@@ -164,10 +164,10 @@ def prepare_message(eth_spent, usd_spent, printable_token_received, printable_tr
         message = message + '\n<b>Received</b> 💰: ' + printable_token_received + ' EXPO'
 
     if printable_treasury_tokens != 'UNAVAILABLE':
-        message = message + '\n<b>Treasury</b> 🏦: $' + printable_treasury_tokens + 'USD (' + printable_treasury_eth ' ETH)' 
+        message = message + '\n<b>Treasury</b> 🏦: $' + printable_treasury_tokens + 'USD (' + printable_treasury_eth + ' ETH)' 
 
     if printable_token_reflected != 'UNAVAILABLE':
-        message = message + '\n<b>Reflected</b> 🔙: $' + printable_token_reflected + 'USD (' + printable_reflected_eth ' ETH)'
+        message = message + '\n<b>Reflected</b> 🔙: $' + printable_token_reflected + 'USD (' + printable_reflected_eth + ' ETH)'
 
     message = message + '\n<b>EXPO price</b>: $' + expo_buy_price
 
