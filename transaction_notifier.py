@@ -89,8 +89,8 @@ def get_eth_price():
     Retrieve current ETH price
     """
     pramas = {
-        'module': 'stats'
-        'action': 'ethprice'
+        'module': 'stats',
+        'action': 'ethprice',
         'apikey': etherscan_api_key
     }
     response = requests.get(etherscan_api_url, data=params)
