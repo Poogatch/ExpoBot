@@ -94,9 +94,9 @@ def get_eth_price():
         'apikey': etherscan_api_key
     }
     response = requests.get(etherscan_api_url, data=params)
-    if response.status_code == 200:
+    if respons.status_code ==200:
         return response.json()['result']
-    LOG.warning('ETH Price not found')
+    LOG.warning('Total supply not found')
 
 
 def get_tokens(txn_hash):
@@ -154,20 +154,20 @@ def get_header(trade_amount):
 
 
 
-def prepare_message(eth_spent, usd_spent, printable_token_received, printable_treasury_tokens, printable_token_reflected, printable_treasury_eth, printable_reflected_eth, expo_buy_price,
+def prepare_message(eth_spent, printable_token_received, printable_treasury_tokens, printable_token_reflected, expo_buy_price,
                     printable_cmc, printable_total_balance, treasure_change_percent,
                     etherscan_link, dexscreener_link):
     message = ''
     message = message + '<b>' + get_header(eth_spent) + '</b>'
-    message = message + '\n<b>Spent</b> 💸: ' + eth_spent + ' ETH ($' + usd_spent + ' USD)'
+    message = message + '\n<b>Spent</b> 💸: ' + eth_spent + ' ETH ($' + (eth_spent * float(eth_price)) + ' USD)'
     if printable_token_received != 'UNAVAILABLE':
         message = message + '\n<b>Received</b> 💰: ' + printable_token_received + ' EXPO'
 
     if printable_treasury_tokens != 'UNAVAILABLE':
-        message = message + '\n<b>Treasury</b> 🏦: $' + printable_treasury_tokens + 'USD (' + printable_treasury_eth ' ETH)' 
+        message = message + '\n<b>Treasury</b> 🏦: ' + printable_treasury_tokens + ' ETH'
 
     if printable_token_reflected != 'UNAVAILABLE':
-        message = message + '\n<b>Reflected</b> 🔙: $' + printable_token_reflected + 'USD (' + printable_reflected_eth ' ETH)'
+        message = message + '\n<b>Reflected</b> 🔙: $' + printable_token_reflected + ' ETH'
 
     message = message + '\n<b>EXPO price</b>: $' + expo_buy_price
 
@@ -186,8 +186,6 @@ def calculate_transaction_data(trade):
     eth_spent = trade['amount1']
     LOG.info("Eth spent: " + str(eth_spent))
     expo_buy_price = trade['priceUsd']
-    eth_price = get_eth_price()
-    usd_spent = float(eth_price)*float(eth_spent) 
 
     try:
         total_supply = get_total_supply()
@@ -241,50 +239,38 @@ def calculate_transaction_data(trade):
         printable_cmc = 'UNAVAILABLE'
     try:
         # burned_tokens, received_tokens, reflected_tokens = get_tokens(trade['txnHash'])
+        eth_price = get_eth_price()
         received_tokens = float(str(trade['amount0']).replace(',', ''))
         reflected_tokens = 0.05 * received_tokens
         treasury_tokens = 0.08 * reflected_tokens
         printable_treasury_tokens = "{:,.0f}".format(
-            (float(treasury_tokens))* float(expo_buy_price)) if treasury_tokens else 'UNAVAILABLE'
+            (float(treasury_tokens))* float(expo_buy_price) / float(eth_price)) if treasury_tokens else 'UNAVAILABLE'
         printable_token_received = "{:,.0f}".format(
             float(received_tokens)) if received_tokens else 'UNAVAILABLE'
         printable_token_reflected = "{:,.0f}".format(
-            (float(reflected_tokens)) * float(expo_buy_price)) if reflected_tokens else 'UNAVAILABLE'
-        ### Treasury received reflected in USD Value
-        ### Reflected in USD Value
-        ### Token Received in EXPO Value
-        printable_treasury_eth = "{:,.0f}".format(
-            (float(treasury_tokens))* float(expo_buy_price) * float(eth_price)) if treasury_tokens else 'UNAVAILABLE'
-        printable_reflected_eth = "{:,.0f}".format(
-            (float(reflected_tokens)) * float(expo_buy_price) * float(eth_price)) if reflected_tokens else 'UNAVAILABLE'
+            (float(reflected_tokens)) * float(expo_buy_price) / float(eth_price)) if reflected_tokens else 'UNAVAILABLE'
     except TypeError as error:
         LOG.error("Unable to find transaction data")
         printable_burnt_tokens = 'UNAVAILABLE'
         printable_token_received = 'UNAVAILABLE'
         printable_token_reflected = 'UNAVAILABLE'
-        printable_treasury_eth = 'UNAVAILABLE'
-        printable_reflected_eth = 'UNAVAILABLE'
     except JSONDecodeError as error:
         LOG.error("Unable to parse json")
         printable_burnt_tokens = 'UNAVAILABLE'
         printable_token_received = 'UNAVAILABLE'
         printable_token_reflected = 'UNAVAILABLE'
-        printable_treasury_eth = 'UNAVAILABLE'
-        printable_reflected_eth = 'UNAVAILABLE'
     except IndexError as error:
         LOG.error("Unable to parse json due to indexing issue")
         printable_burnt_tokens = 'UNAVAILABLE'
         printable_token_received = 'UNAVAILABLE'
         printable_token_reflected = 'UNAVAILABLE'
-        printable_treasury_eth = 'UNAVAILABLE'
-        printable_reflected_eth = 'UNAVAILABLE'
 
     try:
         etherscan_link = 'https://etherscan.io/tx/' + trade['txnHash']
         dexscreener_link = 'https://dexscreener.com/ethereum/' + liquidity_pool_id
 
-        message = f"""{prepare_message(eth_spent, usd_spent, printable_token_received, printable_treasury_tokens, printable_token_reflected, printable_treasury_eth,
-                                       printable_reflected_eth, expo_buy_price, printable_cmc, printable_total_balance, treasure_change_percent, etherscan_link, dexscreener_link)}"""
+        message = f"""{prepare_message(eth_spent,printable_token_received, printable_treasury_tokens, printable_token_reflected,
+                                       expo_buy_price, printable_cmc, printable_total_balance, treasure_change_percent, etherscan_link, dexscreener_link)}"""
         send_message(message)
 
     except NameError as error:
