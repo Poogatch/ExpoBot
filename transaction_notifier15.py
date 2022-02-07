@@ -366,8 +366,6 @@ def track_transaction():
         LOG.error("Unable to fetch transaction. Some dexscreener issue.")
     except TypeError as error:
         LOG.error("Unable to fetch transaction. Some dexscreener issue.")
-    except ConnectionError as error:
-        LOG.error("Unable to connect to Dexscreener.")
 
     if not trades:
         LOG.debug('No new transaction found')
