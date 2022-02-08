@@ -13,8 +13,8 @@ logging.basicConfig(level=logging.INFO,
 LOG = logging.getLogger(__name__)
 
 
-BOT_API_KEY = '5185799432:AAF2jHYKer2inIEOI6uOWSHU1vZm1o7uocU'
-CHANNEL_ID = '-1001569990778'
+BOT_API_KEY = '5178892115:AAGVaTYLhslBQW29FL5CfZ_Kyf9wIxOF0FU'
+CHANNEL_ID = '-1001620608960'
 
 liquidity_pool_id = '0x8e1b5164d4059fdec87ec5d0b9c64e4ff727b1ed'
 dex_screener_base_url = 'https://io8.dexscreener.io/u/trading-history/recent/ethereum/'
@@ -159,14 +159,12 @@ def get_treasury_amount_degen():
     return data[0]['amount']
 
 def get_holder_amount(buyer_address):
-    try:
-        dbank_holder_search_url = 'https://openapi.debank.com/v1/user/token_search?chain_id=eth&id=' \
-                             + buyer_address + '&q=' + contract_address + '&has_balance'
-        response = requests.get(dbank_holder_search_url)
-        data = response.json()
-        return data[0]['amount']
-    except ConnectionError as error:
-        return 0
+    dbank_holder_search_url = 'https://openapi.debank.com/v1/user/token_search?chain_id=eth&id=' \
+                         + buyer_address + '&q=' + contract_address + '&has_balance'
+    response = requests.get(dbank_holder_search_url)
+    data = response.json()
+    return data[0]['amount']
+
 def get_buyer_address(tx_hash):
     params = {
         'module': 'proxy',
@@ -177,16 +175,12 @@ def get_buyer_address(tx_hash):
     response = requests.get(etherscan_api_url, data=params)
     if response.status_code == 200:
         return response.json()['result']
-    else:
-        return "UNAVAILABLE"
+    LOG.warning('buyer address not found')
 
 def get_header(trade_amount):
     header = 'EXPO BUY \n'
     multiplier = int((float(trade_amount)*10) + 0.5)
-    if multiplier == 0:
-        bubbles = "🟢"
-    else:
-        bubbles = "🟢" * multiplier
+    bubbles = "🟢" * multiplier
     header = header + bubbles
     return header
     LOG.info(f'Header: {header}')
@@ -228,7 +222,6 @@ def prepare_message(eth_spent, usd_spent, printable_token_received, printable_tr
 def calculate_transaction_data(trade):
     global treasure_change_percent
     eth_spent = trade['amount1']
-    eth_spent = str(round(float(eth_spent),2))
     LOG.info("Eth spent: " + str(eth_spent))
     expo_buy_price = trade['priceUsd']
     eth_price = get_eth_price()
@@ -280,9 +273,6 @@ def calculate_transaction_data(trade):
         printable_total_balance = 'UNAVAILABLE'
     except JSONDecodeError as error:
         LOG.error("Unable to parse json")
-        printable_total_balance = 'UNAVAILABLE'
-    except ConnectionError as error:
-        LOG.error("Couldn't connect to debank")
         printable_total_balance = 'UNAVAILABLE'
 
 
