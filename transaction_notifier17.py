@@ -32,6 +32,8 @@ treasury_wallet_address = '0x9e2f500a31f5b6ec0bdfc87957587307d247a595'
 treasury_wallet_address_degen = '0x880a3769d82d63ee014195b758854d5750bb30ca'
 dbank_token_search_url = 'https://openapi.debank.com/v1/user/token_search?chain_id=eth&id=' \
                          + treasury_wallet_address + '&q=' + contract_address + '&has_balance'
+dbank_token_search_url_degen = 'https://openapi.debank.com/v1/user/token_search?chain_id=eth&id=' \
+                         + treasury_wallet_address_degen + '&q=' + contract_address + '&has_balance'
 chad = "https://i.imgur.com/auV7S0u.webp"
 wojack = "https://i.imgur.com/IW1OEoH.webp"
 
@@ -151,6 +153,10 @@ def get_treasury_amount():
     data = response.json()
     return data[0]['amount']
 
+def get_treasury_amount_degen():
+    response = requests.get(dbank_token_search_url_degen)
+    data = response.json()
+    return data[0]['amount']
 
 def get_holder_amount(buyer_address):
     try:
@@ -257,8 +263,10 @@ def calculate_transaction_data(trade):
         treasury_balance = total_balance.json()['total_usd_value']
         treasury_balance_degen = total_balance_degen.json()['total_usd_value']
         ##########
-        expo_amount = float(get_treasury_amount()) * float(expo_buy_price)
-        treasury_balance = float(treasury_balance) + float(treasury_balance_degen)
+        expo_amount_main = float(get_treasury_amount()) * float(expo_buy_price)
+        expo_amount_degen = float(get_treasury_amount_degen()) * float(expo_buy_price)
+        expo_amount = float(expo_amount_main) + float(expo_amount_degen)
+        treasury_balance = float(treasury_balance) + float(expo_amount) + float(treasury_balance_degen)
         treasure_change = float(expo_amount) / float(treasury_balance)
         treasure_change_percent = treasure_change * 100
         printable_total_balance = "{:,.0f}".format(
